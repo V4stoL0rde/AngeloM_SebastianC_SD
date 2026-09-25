@@ -38,6 +38,8 @@ def procesar(linea, estado):
     if comando == "SALIR":
         return "ADIOS"
     # --- Agreguen aquí la operación propia de su equipo (paso 3 del laboratorio) ---
+    if comando == "LIMA":
+        return "LIMÓN"
     return "ERROR comando desconocido"
 
 
