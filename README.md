@@ -1,3 +1,1 @@
-Integrantes:
--Angelo Muñoz
--Sebastián Cárcamo
+Integrantes: Angelo Muñoz, Sebastián Cárcamo
