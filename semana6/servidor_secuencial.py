@@ -37,6 +37,36 @@ def procesar(linea, estado):
         return f"OK {estado['recibidos']}"
     if comando == "SALIR":
         return "ADIOS"
+    import socket
+import sys
+import time  # <-- Asegúrate de agregar esta importación arriba
+from datetime import datetime
+
+# ... resto del código ...
+
+def procesar(linea, estado):
+    """Recibe una línea sin \n y el estado de la conexión. Devuelve la respuesta."""
+    estado["recibidos"] += 1
+    partes = linea.split(" ", 1)
+    comando = partes[0].upper()
+    argumento = partes[1] if len(partes) > 1 else ""
+
+    if comando == "HOLA":
+        estado["nombre"] = argumento or "anónimo"
+        return f"OK hola {estado['nombre']}"
+    if comando == "ECO":
+        return f"ECO {argumento}"
+    if comando == "CONTAR":
+        return f"OK {estado['recibidos']}"
+    if comando == "SALIR":
+        return "ADIOS"
+    if comando == "ESPERA":  # <-- AGREGA ESTE BLOQUE
+        try:
+            seg = float(argumento)
+            time.sleep(seg)
+            return f"OK ESPERA {argumento}"
+        except ValueError:
+            return "ERROR formato ESPERA <segundos>"
     # --- Agreguen aquí la operación propia de su equipo (paso 3 del laboratorio) ---
     if comando == "LIMA":
         return "LIMÓN"
