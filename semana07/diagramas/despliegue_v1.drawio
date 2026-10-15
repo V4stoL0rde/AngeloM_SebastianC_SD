@@ -1,0 +1,49 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Página-1" id="WEMvg3JHYQhHXcEd-GqW">
+    <mxGraphModel dx="1369" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="host" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F4F4;strokeColor=#595959;verticalAlign=top;fontStyle=1;fontSize=13;" value="Computador del equipo (anfitrión)" vertex="1">
+          <mxGeometry height="460" width="880" x="180" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="net" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBE9EA;strokeColor=#C1272D;dashed=1;verticalAlign=top;fontStyle=1;fontSize=12;arcSize=4;" value="Red Docker sd_net" vertex="1">
+          <mxGeometry height="380" width="810" x="220" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_ext" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F0F8;strokeColor=#1F4E79;strokeWidth=2;fontSize=12;" value="&lt;b&gt;Navegador / Cliente&lt;/b&gt;&lt;br&gt;HTTP Client / cURL" vertex="1">
+          <mxGeometry height="80" width="130" x="20" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C1272D;strokeWidth=2;fontSize=12;" value="&lt;b&gt;nginx&lt;/b&gt;&lt;br&gt;sd_nginx&lt;br&gt;Balanceador Nginx" vertex="1">
+          <mxGeometry height="80" width="140" x="260" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="api1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C1272D;strokeWidth=2;fontSize=12;" value="&lt;b&gt;api1&lt;/b&gt;&lt;br&gt;sd_api1&lt;br&gt;FastAPI (sin estado)" vertex="1">
+          <mxGeometry height="80" width="150" x="500" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="api2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C1272D;strokeWidth=2;fontSize=12;" value="&lt;b&gt;api2&lt;/b&gt;&lt;br&gt;sd_api2&lt;br&gt;FastAPI (sin estado)" vertex="1">
+          <mxGeometry height="80" width="150" x="500" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="srv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C1272D;strokeWidth=2;fontSize=12;" value="&lt;b&gt;servidor&lt;/b&gt;&lt;br&gt;sd_servidor&lt;br&gt;servidor.py&lt;br&gt;hilo por cliente" vertex="1">
+          <mxGeometry height="90" width="180" x="780" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="nota" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=12;fillColor=#FFF4E0;strokeColor=#B26A00;fontSize=11;" value="Estado del dominio&lt;br&gt;en memoria, protegido por Lock" vertex="1">
+          <mxGeometry height="65" width="180" x="780" y="345" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ext" edge="1" parent="1" source="cli_ext" style="endArrow=block;html=1;strokeColor=#1F4E79;strokeWidth=2;fontSize=11;fontStyle=1;" target="nginx" value="HTTP 8080 -&gt; 80">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_nginx_api1" edge="1" parent="1" source="nginx" style="endArrow=block;html=1;strokeColor=#595959;strokeWidth=2;fontSize=11;fontStyle=1;" target="api1" value="HTTP 8000">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_nginx_api2" edge="1" parent="1" source="nginx" style="endArrow=block;html=1;strokeColor=#595959;strokeWidth=2;fontSize=11;fontStyle=1;" target="api2" value="HTTP 8000">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_api1_srv" edge="1" parent="1" source="api1" style="endArrow=block;html=1;strokeColor=#595959;strokeWidth=2;fontSize=11;fontStyle=1;" target="srv" value="TCP 5000">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_api2_srv" edge="1" parent="1" source="api2" style="endArrow=block;html=1;strokeColor=#595959;strokeWidth=2;fontSize=11;fontStyle=1;" target="srv" value="TCP 5000">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
