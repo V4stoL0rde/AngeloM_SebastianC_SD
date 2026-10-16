@@ -1,21 +1,12 @@
-"""Puerta HTTP (API REST) delante del servidor TCP de la Semana 6.
+"""Puerta HTTP (API REST) delante del servidor TCP de Sensores IoT.
 
-Cada peticion HTTP se TRADUCE a una linea del protocolo de texto, se envia
-al servidor TCP y la respuesta se traduce de vuelta a JSON y a un codigo HTTP.
+Cada petición HTTP se TRADUCE a una línea del protocolo de texto, se envía
+al servidor TCP y la respuesta se traduce de vuelta a JSON y a un código HTTP.
 
-    GET  /items                  ->  LISTAR
-    GET  /items/{item}           ->  LISTAR (y se filtra)
-    POST /items/{item}/entradas  ->  AGREGAR <item> <cantidad>
-    POST /items/{item}/salidas   ->  QUITAR  <item> <cantidad>
-
-Plantilla del laboratorio, dominio de referencia INVENTARIO. Cada equipo
-reemplaza los recursos por los de su dominio y mantiene la estructura
-    pedir()     habla con el servidor TCP  (no se toca)
-    traducir()  convierte OK / ERROR en datos o en un codigo HTTP  (no se toca)
-    ERRORES     tabla codigo del protocolo -> codigo HTTP  (se adapta)
-    recursos    una funcion por operacion expuesta  (se adapta)
-
-La API NO guarda nada. Todo el estado sigue viviendo en el servidor TCP.
+    GET  /salud                        -> Verificación de salud
+    GET  /sensores                     -> REPORTE
+    GET  /sensores/{id_sensor}         -> LEER <id_sensor>
+    POST /sensores/{id_sensor}/lecturas -> ACTUALIZAR <id_sensor> <valor>
 """
 import os
 import socket
@@ -28,33 +19,30 @@ SERVIDOR_PUERTO = int(os.environ.get("SERVIDOR_PUERTO", "5000"))
 TIMEOUT_SERVIDOR = float(os.environ.get("TIMEOUT_SERVIDOR", "3"))
 REPLICA = os.environ.get("REPLICA", socket.gethostname())
 
-app = FastAPI(title="API de inventario", version="1.0",
-              description="Puerta HTTP del servicio propio. Semana 7.")
+app = FastAPI(
+    title="API de Sensores IoT",
+    version="1.0",
+    description="Puerta HTTP del servicio de Sensores IoT. Semana 7."
+)
 
-ITEM = Path(pattern=r"^[a-z0-9_]{1,30}$", description="nombre del item, sin espacios")
+ID_SENSOR = Path(pattern=r"^[a-zA-Z0-9_]{1,30}$", description="identificador del sensor")
 
-# Codigo de error del protocolo de texto  ->  codigo de estado HTTP
+# Código de error del protocolo de texto -> código de estado HTTP
 ERRORES = {
-    "ITEM_NO_EXISTE": 404,          # el recurso no existe
-    "STOCK_INSUFICIENTE": 409,      # la peticion es valida pero choca con el estado actual
-    "FORMATO": 400,                 # la peticion esta mal armada
-    "COMANDO_DESCONOCIDO": 501,     # el servidor no implementa esa operacion
     "SENSOR_NO_ENCONTRADO": 404,
     "VALOR_INVALIDO": 400,
+    "FORMATO": 400,
+    "COMANDO_DESCONOCIDO": 501,
 }
 
-
-
-class Movimiento(BaseModel):
-    cantidad: int = Field(gt=0, description="unidades, entero mayor que cero")
 
 class Lectura(BaseModel):
     valor: float = Field(description="valor numérico de la telemetría")
 
 
-# ----------------------------------------------------------------- hablar con el nivel de datos
+# ----------------------------------------------------------------- Hablar con el nivel de datos
 def pedir(linea: str) -> str:
-    """Envia UNA linea al nivel de datos y devuelve UNA linea de respuesta."""
+    """Envía UNA línea al nivel de datos y devuelve UNA línea de respuesta."""
     try:
         with socket.create_connection((SERVIDOR_HOST, SERVIDOR_PUERTO),
                                       timeout=TIMEOUT_SERVIDOR) as s:
@@ -62,7 +50,7 @@ def pedir(linea: str) -> str:
             respuesta = s.makefile("r", encoding="utf-8").readline().strip()
     except socket.timeout:
         raise HTTPException(504, {"error": "SERVIDOR_NO_RESPONDE", "replica": REPLICA})
-    except OSError as e:                     # no resuelve el nombre, conexion rechazada, red caida
+    except OSError as e:
         raise HTTPException(503, {"error": "SERVIDOR_NO_DISPONIBLE",
                                   "detalle": e.__class__.__name__, "replica": REPLICA})
     if not respuesta:
@@ -71,7 +59,7 @@ def pedir(linea: str) -> str:
 
 
 def traducir(respuesta: str) -> list[str]:
-    """'OK a b c' -> ['a','b','c'].  'ERROR CODIGO detalle' -> excepcion HTTP."""
+    """'OK a b c' -> ['a','b','c']. 'ERROR CODIGO detalle' -> excepción HTTP."""
     partes = respuesta.split()
     if partes[0] == "OK":
         return partes[1:]
@@ -80,60 +68,30 @@ def traducir(respuesta: str) -> list[str]:
                         {"error": codigo, "detalle": " ".join(partes[2:]), "replica": REPLICA})
 
 
-def inventario() -> dict[str, int]:
-    pares = (p.split(":") for p in traducir(pedir("LISTAR")))
-    return {nombre: int(cantidad) for nombre, cantidad in pares}
-
-
-# ----------------------------------------------------------------- recursos
+# ----------------------------------------------------------------- Recursos REST
 @app.get("/salud")
 def salud():
     return {"estado": "ok", "replica": REPLICA}
 
 
-@app.get("/items")
-def listar_items():
-    return {"items": inventario(), "replica": REPLICA}
-
-
-@app.get("/items/{item}")
-def ver_item(item: str = ITEM):
-    items = inventario()
-    if item not in items:
-        raise HTTPException(404, {"error": "ITEM_NO_EXISTE", "replica": REPLICA})
-    return {"item": item, "cantidad": items[item], "replica": REPLICA}
-
 @app.get("/sensores")
 def obtener_reporte():
-    # Envía "REPORTE" al servidor TCP
     partes = traducir(pedir("REPORTE"))
     datos = {p.split(":")[0]: float(p.split(":")[1]) for p in partes if ":" in p}
     return {"telemetria": datos, "replica": REPLICA}
 
+
 @app.get("/sensores/{id_sensor}")
-def leer_sensor(id_sensor: str):
-    # Envía "LEER <id_sensor>"
-    clave_val = traducir(pedir(f"LEER {id_sensor}"))[0]
+def leer_sensor(id_sensor: str = ID_SENSOR):
+    partes = traducir(pedir(f"LEER {id_sensor}"))
+    clave_val = partes[0]
     nombre, val = clave_val.split("=")
     return {"sensor": nombre, "valor": float(val), "replica": REPLICA}
 
 
-@app.post("/items/{item}/entradas", status_code=201)
-def registrar_entrada(mov: Movimiento, item: str = ITEM):
-    nombre, total = traducir(pedir(f"AGREGAR {item} {mov.cantidad}"))
-    return {"item": nombre, "cantidad": int(total), "replica": REPLICA}
-
-
-@app.post("/items/{item}/salidas", status_code=201)
-def registrar_salida(mov: Movimiento, item: str = ITEM):
-    nombre, total = traducir(pedir(f"QUITAR {item} {mov.cantidad}"))
-    return {"item": nombre, "cantidad": int(total), "replica": REPLICA}
-
-
-
 @app.post("/sensores/{id_sensor}/lecturas", status_code=201)
-def actualizar_sensor(lectura: Lectura, id_sensor: str):
-    # Envía "ACTUALIZAR <id_sensor> <valor>"
-    clave_val = traducir(pedir(f"ACTUALIZAR {id_sensor} {lectura.valor}"))[0]
+def actualizar_sensor(lectura: Lectura, id_sensor: str = ID_SENSOR):
+    partes = traducir(pedir(f"ACTUALIZAR {id_sensor} {lectura.valor}"))
+    clave_val = partes[0]
     nombre, val = clave_val.split("=")
     return {"sensor": nombre, "valor": float(val), "replica": REPLICA}
