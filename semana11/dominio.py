@@ -3,8 +3,6 @@ Dominio del servicio, sin nada de red. Semana 11.
 
 Este archivo es lo que NO cambia cuando cambia el transporte. Lo usan
 rpc.py (JSON-RPC, semana 10) y servidor_grpc.py (gRPC, semana 11).
-El equipo reemplaza el inventario de referencia por las operaciones de su
-dominio, las mismas que ya tenía en semana10/rpc.py.
 """
 import threading
 
@@ -13,18 +11,18 @@ _stock = {}
 
 
 class ErrorDominio(Exception):
-    """Regla del negocio que no se cumple, por ejemplo stock insuficiente."""
+    """Regla del negocio que no se cumple, por ejemplo sensor no encontrado."""
 
 
 class ErrorParametros(Exception):
     """Parámetros con valor inválido."""
 
 
-def _validar(producto, cantidad):
-    if not producto:
-        raise ErrorParametros("producto vacío")
-    if cantidad <= 0:
-        raise ErrorParametros("cantidad debe ser mayor que cero")
+def _validar(sensor, valor):
+    if not sensor:
+        raise ErrorParametros("el sensor no puede estar vacío")
+    if not valor:
+        raise ErrorParametros("el valor no puede estar vacío")
 
 
 def listar():
@@ -32,18 +30,17 @@ def listar():
         return dict(_stock)
 
 
-def agregar(producto, cantidad):
-    _validar(producto, cantidad)
+def actualizar(sensor, valor):
+    _validar(sensor, valor)
     with _lock:
-        _stock[producto] = _stock.get(producto, 0) + cantidad
-        return {"producto": producto, "stock": _stock[producto]}
+        _stock[sensor] = valor
+        return {"sensor": sensor, "valor": valor}
 
 
-def quitar(producto, cantidad):
-    _validar(producto, cantidad)
+def leer(sensor):
+    if not sensor:
+        raise ErrorParametros("el sensor no puede estar vacío")
     with _lock:
-        actual = _stock.get(producto, 0)
-        if actual < cantidad:
-            raise ErrorDominio(f"stock insuficiente, hay {actual}")
-        _stock[producto] = actual - cantidad
-        return {"producto": producto, "stock": _stock[producto]}
+        if sensor not in _stock:
+            raise ErrorDominio(f"sensor {sensor} no encontrado")
+        return {"sensor": sensor, "valor": _stock[sensor]}
