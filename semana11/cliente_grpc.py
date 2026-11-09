@@ -1,10 +1,10 @@
 """
-Cliente gRPC del servicio, semana 11.
+Cliente gRPC del servicio, semana 11 (Sensores IoT).
 
 Uso
   python cliente_grpc.py listar
-  python cliente_grpc.py agregar tornillo 25
-  python cliente_grpc.py quitar tornillo 5 --reintentos 2
+  python cliente_grpc.py actualizar temperatura 23.5
+  python cliente_grpc.py leer temperatura --reintentos 2
 
 Variables
   SERVIDOR_HOST    (servidor)   SERVIDOR_PUERTO (50051)
@@ -29,22 +29,26 @@ REINTENTABLES = {grpc.StatusCode.DEADLINE_EXCEEDED, grpc.StatusCode.UNAVAILABLE}
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("metodo", choices=["listar", "agregar", "quitar"])
-    ap.add_argument("producto", nargs="?", default="")
-    ap.add_argument("cantidad", nargs="?", type=int, default=0)
+    ap.add_argument("metodo", choices=["listar", "actualizar", "leer"])
+    ap.add_argument("sensor", nargs="?", default="")
+    ap.add_argument("valor", nargs="?", default="")
     ap.add_argument("--reintentos", type=int, default=int(os.getenv("REINTENTOS", "0")))
     ap.add_argument("--timeout", type=float, default=float(os.getenv("TIMEOUT_CLIENTE", "2")))
     a = ap.parse_args()
 
     canal = grpc.insecure_channel(f"{HOST}:{PUERTO}")
-    stub = pb_grpc.InventarioStub(canal)        # el stub, generado desde el .proto
+    stub = pb_grpc.ControlSensoresStub(canal)  # Stub generado desde el .proto de sensores
 
     if a.metodo == "listar":
         llamada, solicitud = stub.Listar, pb.ListarSolicitud()
-    else:
-        solicitud = pb.MovimientoSolicitud(
-            id_solicitud=uuid.uuid4().hex[:8], producto=a.producto, cantidad=a.cantidad)
-        llamada = stub.Agregar if a.metodo == "agregar" else stub.Quitar
+    elif a.metodo == "actualizar":
+        solicitud = pb.ActualizarSolicitud(
+            id_solicitud=uuid.uuid4().hex[:8], sensor=a.sensor, valor=a.valor
+        )
+        llamada = stub.Actualizar
+    else:  # leer
+        solicitud = pb.LeerSolicitud(sensor=a.sensor)
+        llamada = stub.Leer
 
     for intento in range(1, a.reintentos + 2):
         ids = getattr(solicitud, "id_solicitud", "-")
@@ -56,11 +60,13 @@ def main():
             if e.code() in REINTENTABLES:
                 continue
             return 1
+            
         if a.metodo == "listar":
-            print("[cliente]   " + (", ".join(f"{i.producto}={i.stock}" for i in resp.items) or "(vacío)"))
+            print("[cliente]   " + (", ".join(f"{i.sensor}={i.valor}" for i in resp.items) or "(vacío)"))
         else:
-            print(f"[cliente]   OK {resp.producto} stock={resp.stock}")
+            print(f"[cliente]   OK sensor {resp.sensor} = {resp.valor}")
         return 0
+        
     if a.metodo == "listar":
         print("[cliente] me rendí, sin respuesta del servidor")
     else:

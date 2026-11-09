@@ -1,5 +1,5 @@
 """
-Servidor gRPC del servicio, semana 11.
+Servidor gRPC del servicio, semana 11 (Sensores IoT).
 
 Usa el dominio de dominio.py sin tocarlo. Lo único nuevo es el transporte.
 
@@ -46,28 +46,31 @@ def demorar_si_corresponde():
     time.sleep(DEMORA)
 
 
-class Inventario(pb_grpc.InventarioServicer):
+class ControlSensores(pb_grpc.ControlSensoresServicer):
 
     def Listar(self, request, context):
-        items = [pb.Item(producto=p, stock=s) for p, s in sorted(dominio.listar().items())]
-        log(f"Listar -> {len(items)} productos")
+        items = [pb.SensorItem(sensor=s, valor=v) for s, v in sorted(dominio.listar().items())]
+        log(f"Listar -> {len(items)} sensores")
         return pb.ListarRespuesta(items=items)
 
-    def Agregar(self, request, context):
-        return self._modificar("Agregar", request, context,
-                               aplicar=lambda: dominio.agregar(request.producto, request.cantidad),
-                               respuesta=pb.StockRespuesta)
+    def Actualizar(self, request, context):
+        return self._modificar("Actualizar", request, context,
+                               aplicar=lambda: dominio.actualizar(request.sensor, request.valor),
+                               respuesta=pb.SensorRespuesta)
 
-    def Quitar(self, request, context):
-        return self._modificar("Quitar", request, context,
-                               aplicar=lambda: dominio.quitar(request.producto, request.cantidad),
-                               respuesta=pb.StockRespuesta)
+    def Leer(self, request, context):
+        # Leer es de solo lectura, pero si prefieres validarlo como modificación o lectura directa:
+        try:
+            res = dominio.leer(request.sensor)
+            log(f"Leer sensor={request.sensor} -> {res['valor']}")
+            return pb.SensorRespuesta(**res)
+        except dominio.ErrorParametros as e:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+        except dominio.ErrorDominio as e:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(e))
 
     # ------------------------------------------------------------------
     # Toda operación que modifica estado pasa por aquí. No reescribir.
-    #   aplicar    función sin argumentos que llama al dominio y devuelve
-    #              un dict con los mismos nombres de campo que la respuesta
-    #   respuesta  clase del mensaje de respuesta generada desde el .proto
     # ------------------------------------------------------------------
     def _modificar(self, nombre, request, context, aplicar, respuesta):
         ids = request.id_solicitud
@@ -101,7 +104,7 @@ class Inventario(pb_grpc.InventarioServicer):
 
 def main():
     servidor = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    pb_grpc.add_InventarioServicer_to_server(Inventario(), servidor)
+    pb_grpc.add_ControlSensoresServicer_to_server(ControlSensores(), servidor)
     servidor.add_insecure_port(f"0.0.0.0:{PUERTO}")
     servidor.start()
     log(f"gRPC escuchando en {PUERTO} con FALLA={FALLA} DEMORA={DEMORA:.0f} DEDUP={int(DEDUP)}")
