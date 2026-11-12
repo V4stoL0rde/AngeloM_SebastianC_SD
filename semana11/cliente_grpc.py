@@ -5,6 +5,7 @@ Uso
   python cliente_grpc.py listar
   python cliente_grpc.py actualizar temperatura 23.5
   python cliente_grpc.py leer temperatura --reintentos 2
+  python cliente_grpc.py eliminar temperatura
 
 Variables
   SERVIDOR_HOST    (servidor)   SERVIDOR_PUERTO (50051)
@@ -29,7 +30,7 @@ REINTENTABLES = {grpc.StatusCode.DEADLINE_EXCEEDED, grpc.StatusCode.UNAVAILABLE}
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("metodo", choices=["listar", "actualizar", "leer"])
+    ap.add_argument("metodo", choices=["listar", "actualizar", "leer", "eliminar"])
     ap.add_argument("sensor", nargs="?", default="")
     ap.add_argument("valor", nargs="?", default="")
     ap.add_argument("--reintentos", type=int, default=int(os.getenv("REINTENTOS", "0")))
@@ -46,6 +47,11 @@ def main():
             id_solicitud=uuid.uuid4().hex[:8], sensor=a.sensor, valor=a.valor
         )
         llamada = stub.Actualizar
+    elif a.metodo == "eliminar":
+        solicitud = pb.EliminarSolicitud(
+            id_solicitud=uuid.uuid4().hex[:8], sensor=a.sensor
+        )
+        llamada = stub.Eliminar
     else:  # leer
         solicitud = pb.LeerSolicitud(sensor=a.sensor)
         llamada = stub.Leer
