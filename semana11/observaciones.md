@@ -1,10 +1,10 @@
 # Observaciones semana 11 · Migración a gRPC
 
-Equipo ……………… · Dominio ……………… · Fecha 06-11-2026
+Equipo AngeloM_SebastianC · Dominio Sensores IoT · Fecha 06-11-2026
 
 ## 1. Contrato
-- Archivo `proto/servicio.proto` con 3 operaciones.
-- Operaciones que modifican estado y llevan `id_solicitud`: `ACTUALIZAR`
+- Archivo `proto/servicio.proto` con 4 operaciones.
+- Operaciones que modifican estado y llevan `id_solicitud`: `ACTUALIZAR`,`ELIMINAR`
 - Operaciones idempotentes (se pueden repetir sin efecto extra): `listar y leer`
 
 ## 2. Stubs generados
@@ -40,9 +40,18 @@ El error muestra `status = StatusCode.UNIMPLEMENTED`.
 | 5 | `docker compose kill servidor` durante una llamada | UNAVAILABLE, Socket closed | (vacío) | Volátil o desconocido |
 
 Pegar aquí las líneas relevantes de `docker compose logs servidor` de los casos 3 y 4.
-
-```
-```
+CASO3:
+[servidor] gRPC escuchando en 50051 con FALLA=siempre DEMORA=3 DEDUP=0
+[servidor] Actualizar id=6d95cdcc -> {'sensor': 'temperatura', 'valor': '30'}
+[servidor] FALLA=siempre, cambio YA aplicado, demoro la respuesta 3 s
+[servidor] Actualizar id=6d95cdcc -> {'sensor': 'temperatura', 'valor': '30'}
+[servidor] FALLA=siempre, cambio YA aplicado, demoro la respuesta 3 s
+CASO 4:
+[servidor] gRPC escuchando en 50051 con FALLA=siempre DEMORA=3 DEDUP=1
+[servidor] Actualizar id=c4ae0628 -> {'sensor': 'temperatura', 'valor': '40'}
+[servidor] FALLA=siempre, cambio YA aplicado, demoro la respuesta 3 s
+[servidor] Actualizar id=c4ae0628 repetido, devuelvo lo guardado SIN aplicar de nuevo
 
 ## 5. Conclusión (cinco líneas como máximo)
 ¿Qué operaciones de su dominio serían peligrosas de reintentar sin `id_solicitud`? ¿Qué pasaría en la vida real?
+Las operaciones que mueven datos o modifican cosas (como Actualizar o Eliminar) son peligrosas de mandar de nuevo si no llevan un id_solicitud. En la vida real, si la red se pone lenta, el cliente reintenta y la misma orden se ejecuta dos veces, lo que puede duplicar registros o borrar información por accidente. Con el id_solicitud y el filtro de duplicados (DEDUP=1), se aseguras de que el servidor pare los los reintentos y la operación corra de forma segura.
