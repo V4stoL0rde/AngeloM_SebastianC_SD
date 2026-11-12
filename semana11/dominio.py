@@ -10,6 +10,7 @@ _lock = threading.Lock()
 _stock = {}
 
 
+
 class ErrorDominio(Exception):
     """Regla del negocio que no se cumple, por ejemplo sensor no encontrado."""
 
@@ -44,3 +45,13 @@ def leer(sensor):
         if sensor not in _stock:
             raise ErrorDominio(f"sensor {sensor} no encontrado")
         return {"sensor": sensor, "valor": _stock[sensor]}
+
+
+def eliminar(sensor):
+    if not sensor:
+        raise ErrorParametros("el sensor no puede estar vacío")
+    with _lock:
+        if sensor not in _stock:
+            raise ErrorDominio(f"sensor {sensor} no encontrado")
+        valor = _stock.pop(sensor)
+        return {"sensor": sensor, "valor": valor}
