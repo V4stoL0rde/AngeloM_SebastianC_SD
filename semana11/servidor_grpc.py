@@ -68,7 +68,11 @@ class ControlSensores(pb_grpc.ControlSensoresServicer):
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except dominio.ErrorDominio as e:
             context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(e))
-
+   
+    def Eliminar(self, request, context):
+        return self._modificar("Eliminar", request, context,
+                               aplicar=lambda: dominio.eliminar(request.sensor),
+                               respuesta=pb.SensorRespuesta)
     # ------------------------------------------------------------------
     # Toda operación que modifica estado pasa por aquí. No reescribir.
     # ------------------------------------------------------------------
