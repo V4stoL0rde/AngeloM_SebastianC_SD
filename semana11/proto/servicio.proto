@@ -5,12 +5,17 @@ syntax = "proto3";
 package sensores.v1;
 
 service ControlSensores {
-  // Solo lectura, idempotente
   rpc Listar (ListarSolicitud) returns (ListarRespuesta);
-
-  // Modifican estado, NO idempotentes, necesitan id_solicitud
   rpc Actualizar (ActualizarSolicitud) returns (SensorRespuesta);
   rpc Leer       (LeerSolicitud)       returns (SensorRespuesta);
+
+  // Operación nueva añadida
+  rpc Eliminar   (EliminarSolicitud)   returns (SensorRespuesta);
+}
+
+message EliminarSolicitud {
+  string id_solicitud = 1;
+  string sensor       = 2;
 }
 
 message ListarSolicitud {}
